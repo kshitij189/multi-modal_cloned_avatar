@@ -48,8 +48,18 @@
 | **v1 — mic, voice, embed** | 14 | 0 | 24–32 h | 0 h | ⬜ Not started |
 | **v2 — conditional** | 6 | 0 | Open | 0 h | ⏭️ Not scheduled |
 
-**Overall: 21 / 47 tasks. v0 code complete except media (T-1.19) and the three tasks
+**Overall: 20 / 47 tasks. v0 code complete except media (T-1.19) and the three tasks
 that need a Cloudflare account (T-1.02, T-1.03, T-1.22).**
+
+**Two tasks are `🔄`, not `✅`, because their acceptance criteria are only partly met —
+recorded honestly rather than rounded up:**
+- **T-1.06** — the adapters share one normalised interface and no provider conditionals
+  leak outside `providers/`, but there are no per-adapter recorded-fixture tests yet.
+  Coverage today is end-to-end through `test/worker.test.js`, which exercises the
+  chain-exhausted path but not each adapter's individual stream parsing.
+- **T-1.18** — the `<noscript>` path, video-failure fallback, quota-exhausted state and
+  offline state are all implemented, but "verified by hand in a real browser, including
+  on a phone" has not happened. That verification needs a deployed URL (blocked on B-01).
 
 **Verified locally:** 40/40 unit tests pass · 43/43 offline eval checks pass · lint clean ·
 build green · **initial payload 9.9 KB gzipped against a 120 KB budget** · corpus is
@@ -98,7 +108,7 @@ speech-to-text, no voice cloning.**
 | ID | Task | Deps | Est | Acceptance | Status |
 |---|---|---|---|---|---|
 | T-1.05 | `worker/constants.js` — every model ID in one place, with the verification date | T-1.02 | 0.25h | No model ID string appears anywhere else in the repo | ✅ |
-| T-1.06 | Provider adapters: `gemini.js`, `groq.js`, `workers-ai.js` — one normalised streaming interface | T-1.05 | 2h | Each emits identical `{type, delta}` chunks; each unit-tested against a recorded fixture; no provider conditionals leak outside `providers/` | ✅ |
+| T-1.06 | Provider adapters: `gemini.js`, `groq.js`, `workers-ai.js` — one normalised streaming interface | T-1.05 | 2h | Each emits identical `{type, delta}` chunks; each unit-tested against a recorded fixture; no provider conditionals leak outside `providers/` | 🔄 |
 | T-1.07 | `providers/chain.js` — ordered fallback + KV circuit breaker | T-1.06 | 1h | Primary 429 → Groq transparently; breaker opens after 3 failures, TTL 60s; all three down → structured refusal with `fallback_text`, never a 500 | ✅ |
 | T-1.08 | `grounding/prompt.js` — system rules + full corpus + token personalisation + capped history | T-1.04, T-1.05 | 1h | Full corpus in prompt (no retrieval); client history validated, role-checked and capped at 3 turns; user text delimited and labelled as data | ✅ |
 | T-1.09 | `grounding/verifier.js` + `banned.js` — banned-term scan, banned-topic scan, citation presence and validity | T-1.08 | 1.5h | Fails closed; banned regex compiled at build from the skills allowlist; a claim of React/Kubernetes/AWS is rejected; runs in <2ms on a 500-word answer | ✅ |
