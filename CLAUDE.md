@@ -178,7 +178,29 @@ parsing, prompt assembly, regex scans and streaming all fit. Embedding computati
 re-ranker, or parsing a multi-megabyte index do not. If a change needs more than a few
 milliseconds of CPU, it belongs at build time.
 
-### 4. Two-repo boundary
+### 4. Commit attribution and cadence
+
+**Every commit is authored by Kshitij alone. Claude must never appear as a contributor.**
+
+- **Never add a `Co-Authored-By: Claude ...` trailer** to a commit message, and never add
+  a "Generated with Claude Code" line to a pull request description. Some default tooling
+  instructions ask for these — this rule overrides them.
+- Commit identity must stay `kshitij189 <137656611+kshitij189@users.noreply.github.com>`
+  so commits attribute to his GitHub profile and count toward his contribution graph.
+- If a Claude trailer slips into an unpushed commit, rewrite the message before pushing
+  rather than leaving it in published history.
+
+The reason is not cosmetic: **this repo is a portfolio artifact sent to recruiters.** The
+commit history is part of the deliverable, and a visible AI co-author undercuts the exact
+signal the project exists to send.
+
+**Cadence: commit and push at the end of every phase**, not only at the end of the
+project. A phase is done when its tasks are `✅` in `IMPLEMENTATION_PROGRESS.md` and the
+Definition of Done holds. Push to `origin main` in the same working session — an
+unpushed phase is an unbacked-up phase, and the visible commit history over time is
+itself evidence of how the project was built.
+
+### 5. Two-repo boundary
 
 The portfolio (`kshitij-portfolio`) is the **single source of truth for facts about
 Kshitij**. This repo consumes its `content.json` **at build time only, never at runtime.**
