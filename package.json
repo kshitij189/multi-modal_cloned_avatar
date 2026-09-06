@@ -1,0 +1,33 @@
+{
+  "name": "kshitij-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A personalised AI agent that walks recruiters through Kshitij Tripathi's work. Zero recurring cost.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "dev:worker": "wrangler dev",
+    "dev:all": "concurrently -n web,api -c cyan,magenta \"npm:dev\" \"npm:dev:worker\"",
+    "test": "node --test \"test/**/*.test.js\"",
+    "evals": "node evals/run.js",
+    "evals:offline": "node evals/run.js --offline",
+    "lint": "eslint src worker evals scripts test",
+    "check:budget": "node scripts/check-budget.js",
+    "check:quotas": "node scripts/check-quotas.js",
+    "build": "node scripts/build-corpus.js && vite build && node scripts/check-budget.js",
+    "deploy": "npm run build && wrangler deploy && wrangler pages deploy dist --project-name=kshitij-agent",
+    "deploy:worker": "wrangler deploy"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.11",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.17.0",
+    "tailwindcss": "^4.1.11",
+    "vite": "^6.0.7",
+    "wrangler": "^3.99.0"
+  }
+}

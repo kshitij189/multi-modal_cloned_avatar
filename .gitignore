@@ -1,0 +1,20 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+.env
+.env.*
+!.env.example
+
+# Operator-private. Never committed to a public repo.
+outreach.csv
+assets/voice/
+assets/raw/
+public/media/voice/greet-*.mp3
+
+# Eval output
+evals/report.json
+
+# OS
+.DS_Store
+Thumbs.db

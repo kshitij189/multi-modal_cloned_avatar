@@ -1,0 +1,45 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "kshitij-agent"
+main = "worker/index.js"
+compatibility_date = "2026-09-06"
+compatibility_flags = ["nodejs_compat"]
+
+# NEVER put secrets in this file — it is committed.
+#   npx wrangler secret put GEMINI_API_KEY
+#   npx wrangler secret put GROQ_API_KEY
+# For local dev, put them in .dev.vars (gitignored).
+
+[vars]
+BUILD_SHA = "dev"
+
+# Token payloads and circuit-breaker state.
+# 100,000 reads/day, 1,000 WRITES/day. Nothing on a request path writes here.
+[[kv_namespaces]]
+binding = "TOKENS"
+id = "REPLACE_ME"                 # npx wrangler kv namespace create TOKENS
+preview_id = "REPLACE_ME_PREVIEW" # npx wrangler kv namespace create TOKENS --preview
+
+# Event log, quota counters, rate limits.
+# 5M rows read/day, 100,000 rows written/day. This is where per-request writes go.
+[[d1_databases]]
+binding = "DB"
+database_name = "kshitij-agent-db"
+database_id = "REPLACE_ME"        # npx wrangler d1 create kshitij-agent-db
+
+# Third-tier LLM fallback. No API key needed — 10,000 neurons/day free.
+[ai]
+binding = "AI"
+
+[observability]
+enabled = true
+
+# Route the API alongside the Pages site once a custom domain exists.
+# Until then the Worker is reachable at kshitij-agent.<subdomain>.workers.dev.
+#
+# IMPORTANT: configure this route to FAIL OPEN in the Cloudflare dashboard. When the
+# 100k/day request limit is hit, fail-open lets the static Pages site serve (a good
+# landing page); fail-closed shows a Cloudflare 1027 error page to a recruiter.
+#
+# [[routes]]
+# pattern = "agent.kshitij.dev/api/*"
+# zone_name = "kshitij.dev"

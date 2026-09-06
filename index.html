@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Kshitij Tripathi — AI agent</title>
+    <meta name="description" content="An AI representation of Kshitij Tripathi, a backend engineer. Ask it about his work." />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="robots" content="noindex" />
+    <link rel="stylesheet" href="/src/styles/tailwind.css" />
+  </head>
+
+  <body class="bg-ink text-paper antialiased">
+    <!--
+      NOSCRIPT IS NOT A COURTESY. A recruiter with JS blocked, or on a corporate network
+      that mangles bundles, must still get the disclosure, the substance and a way to
+      reach a human. See PRD §11.4.
+    -->
+    <noscript>
+      <div class="mx-auto max-w-2xl p-6 space-y-4">
+        <p class="text-sm text-paper/60">
+          This is an AI representation of Kshitij Tripathi, built and published by him.
+          It needs JavaScript for the interactive version — here is the substance without it.
+        </p>
+        <h1 class="text-2xl font-semibold">Kshitij Tripathi</h1>
+        <p>Backend engineer — async pipelines, task queues, retrieval systems.</p>
+        <ul class="list-disc pl-5 space-y-2 text-paper/80">
+          <li><strong>Zhecker Technologies</strong>, SDE Intern (Backend), Jul–Dec 2025. Celery and Redis task systems with parallel execution, retries and fault-tolerant evaluation workflows; Django services orchestrating extraction, scoring and publishing.</li>
+          <li><strong>DocProcessor</strong> — FastAPI, Celery and Redis Pub/Sub async document pipeline streaming progress over SSE across 9 stages. Hybrid retrieval (ChromaDB + BM25), Reciprocal Rank Fusion, cross-encoder re-ranking, three-layer Redis caching.</li>
+          <li><strong>CortexMCP</strong> — 6-stage async research pipeline with parallel scraping, Gemini synthesis with automatic Groq failover, ChromaDB deduplication, JWT-secured Postgres.</li>
+          <li><strong>SplitEase</strong> — Django and PostgreSQL expense-sharing platform. Greedy transaction-minimisation settlement in O(n log n), JWT and Google OAuth 2.0, Gemini-backed chatbot reading live balances.</li>
+        </ul>
+        <p>B.Tech CSE (Data Science &amp; Analytics), IIIT Nagpur, 2022–2026. CGPA 8.11.</p>
+        <p><a class="underline" href="mailto:kttripathi317@gmail.com">kttripathi317@gmail.com</a></p>
+      </div>
+    </noscript>
+
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

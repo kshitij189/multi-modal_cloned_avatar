@@ -1,0 +1,14 @@
+#!/bin/sh
+# Zero-budget enforcement at the git level.
+#
+# The Claude Code hook in .claude/settings.json binds the *agent*. This binds
+# *everyone*, including a hand-typed commit at 1am. Both are needed; neither is
+# sufficient on its own.
+#
+# Enable once per clone:
+#   git config core.hooksPath .githooks
+#
+# Cannot be bypassed except with --no-verify, which CLAUDE.md forbids without an
+# explicit reason recorded in the commit body.
+
+node .claude/hooks/check-no-paid-services.mjs --mode=git || exit 1

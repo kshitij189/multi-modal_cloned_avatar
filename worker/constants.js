@@ -1,0 +1,96 @@
+/**
+ * Every model ID and provider endpoint in the project. Nowhere else.
+ *
+ * This file exists because model IDs go stale fast and a stale ID produces a 400 that
+ * looks like an outage. Groq deprecated `llama-3.3-70b-versatile` and
+ * `llama-3.1-8b-instant` on 2026-06-17; planning this project from memory would have
+ * shipped a dead ID. `npm run check:quotas` verifies every ID here against each
+ * provider's models endpoint.
+ *
+ * All IDs verified 2026-09-06.
+ */
+
+/**
+ * The provider chain, in order. Generalises the Gemini→Groq pattern from CortexMCP to
+ * three tiers across two vendors — two free tiers with correlated failure modes are one
+ * tier with extra steps.
+ *
+ * Each provider lists models in preference order. Free-tier model availability is not
+ * uniform, so a 404/400 on one model falls through to the next within the same provider
+ * before the chain moves on.
+ */
+export const PROVIDERS = [
+  {
+    id: 'gemini',
+    label: 'Google Gemini (AI Studio)',
+    // Free tier, no card. Google no longer publishes per-model RPM/TPM/RPD in its docs —
+    // confirm actual limits at aistudio.google.com/rate-limit.
+    models: ['gemini-3.8-flash', 'gemini-2.5-flash'],
+    endpoint: (model) =>
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`,
+    keyBinding: 'GEMINI_API_KEY',
+  },
+  {
+    id: 'groq',
+    label: 'Groq',
+    // Free tier, no card. Rate limits are ORG-WIDE, not per-key — more keys do not help.
+    models: ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'],
+    endpoint: () => 'https://api.groq.com/openai/v1/chat/completions',
+    keyBinding: 'GROQ_API_KEY',
+  },
+  {
+    id: 'workers-ai',
+    label: 'Cloudflare Workers AI',
+    // 10,000 neurons/day free, no extra key — uses the AI binding. Weakest quality of the
+    // three, which is correct for a third-tier fallback. Non-zero usage here is a signal
+    // that tiers 1 and 2 are failing.
+    models: ['@cf/meta/llama-3.1-8b-instruct'],
+    endpoint: null, // uses env.AI binding, not fetch
+    keyBinding: null,
+  },
+];
+
+/** Speech-to-text fallback when the browser's Web Speech API is unavailable (v1). */
+export const STT = {
+  provider: 'groq',
+  model: 'whisper-large-v3-turbo',
+  endpoint: 'https://api.groq.com/openai/v1/audio/transcriptions',
+  maxFileBytes: 25 * 1024 * 1024,
+};
+
+/** Circuit breaker: skip a provider that is failing rather than probing it every request. */
+export const BREAKER = {
+  failureThreshold: 3,
+  openSeconds: 60,
+  kvPrefix: 'cb:',
+};
+
+/** Quota guards. See PRD §12.5. */
+export const LIMITS = {
+  perTokenCallsPerDay: 40,
+  perSessionCalls: 15,
+  minMsBetweenCalls: 1500,
+  maxAnswerWords: 120,
+  maxHistoryTurns: 3,
+  maxQuestionChars: 600,
+  // Daily budget per provider before the chain demotes it. Conservative against the
+  // unverified Gemini RPD figure.
+  dailyBudget: { gemini: 1000, groq: 5000, 'workers-ai': 500 },
+  // Fractions of dailyBudget at which behaviour changes.
+  demoteAt: 0.7,
+  faqOnlyAt: 0.9,
+};
+
+export const TOKEN_TTL_SECONDS = 90 * 24 * 60 * 60;
+
+/** Origins allowed to call /api/*. Never "*". */
+export const ALLOWED_ORIGINS = [
+  'https://kshitij.dev',
+  'https://agent.kshitij.dev',
+  'https://kshitij-agent.pages.dev',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+];
+
+export const REFUSAL =
+  "That's a good question — I'd rather have Kshitij answer that one directly. He's at kttripathi317@gmail.com.";

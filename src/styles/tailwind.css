@@ -1,0 +1,54 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-ink: #0b0e14;
+  --color-panel: #141822;
+  --color-paper: #e8eaf0;
+  --color-accent: #7dd3a0;
+  --color-muted: #8b93a7;
+}
+
+/* Contrast floor is 4.5:1 throughout, and state is never conveyed by colour alone. */
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100dvh;
+  margin: 0;
+}
+
+/* Visible focus. A keyboard user must always know where they are. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Screen-reader-only, but focusable — used by the skip link. */
+.sr-only:not(:focus):not(:active) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * Motion is decoration. Kill all of it when asked — including the avatar loop crossfade,
+ * not just the obvious CSS transitions. See CLAUDE.md gotchas.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

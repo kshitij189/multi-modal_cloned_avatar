@@ -1,0 +1,10 @@
+{
+  "_comment": [
+    "Reviewed exceptions to the zero-budget pre-commit check.",
+    "An entry here asserts that a human confirmed the service is genuinely free with no",
+    "payment method required. Every entry needs an id, a reason, and a review date.",
+    "Adding an entry is a deliberate act — do not add one to unblock a commit in a hurry.",
+    "Run the cost-sentinel subagent before adding anything here."
+  ],
+  "allow": []
+}

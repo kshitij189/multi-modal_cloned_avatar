@@ -1,0 +1,69 @@
+name: CI
+
+# GitHub Actions on standard runners is free and UNMETERED for public repositories
+# (verified 2026-09-06). Keeping this repo public is what makes CI cost ₹0.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Rebuild corpus and check it is committed
+        run: |
+          npm run build --silent > /dev/null 2>&1 || true
+          node scripts/build-corpus.js
+          # The generated grounding files must match what is committed. A drifted corpus
+          # means the deployed agent's facts differ from the reviewed snapshot.
+          git diff --exit-code content/corpus.md worker/grounding/ \
+            || (echo "::error::Generated corpus is stale. Run 'node scripts/build-corpus.js' and commit."; exit 1)
+
+      - name: Evals (offline — mechanical assertions, no quota)
+        run: npm run evals:offline
+
+      - name: Build and enforce payload budget
+        run: npm run build
+
+  evals-live:
+    # Full evals hit real free-tier providers, so they run only on main — not on every PR.
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Full eval suite
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        # A provider 429 marks cases skipped rather than failing — a free-tier rate limit
+        # must never become a CI outage. Adversarial failures still block absolutely.
+        run: npm run evals
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-report
+          path: evals/report.json
