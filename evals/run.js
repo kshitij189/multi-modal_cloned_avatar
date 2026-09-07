@@ -201,12 +201,29 @@ function releaseVerdict(rows, offline) {
   const skipped = rows.filter((r) => r.status === 'skipped').length;
   const offFail = offline.filter((r) => !r.ok);
 
-  const reasons = [];
-  if (offFail.length) reasons.push(`${offFail.length} offline mechanical check(s) failed`);
-  if (advFail.length) reasons.push(`${advFail.length} adversarial case(s) failed — blocks absolutely`);
-  if (goldRan && rate < 0.95) reasons.push(`golden grounding ${(rate * 100).toFixed(1)}% < 95%`);
+  // A run where most cases could not execute measured almost nothing. Computing a pass
+  // rate over the handful that did run produces a meaningless number — and a spurious
+  // BLOCKED, which contradicts the stated rule that a provider outage must never become
+  // a CI outage (PRD §12.4).
+  //
+  // Such a run is INCONCLUSIVE: it does not block, and it also may not claim SHIP.
+  const ran = rows.length - skipped;
+  const inconclusive = rows.length > 0 && ran / rows.length < 0.5;
 
-  return { blocked: reasons.length > 0, reasons, rate, goldPass, goldRan, advFail: advFail.length, advRan: adv.length, skipped };
+  const reasons = [];
+  // Offline checks need no network, so they are authoritative regardless.
+  if (offFail.length) reasons.push(`${offFail.length} offline mechanical check(s) failed`);
+  // An adversarial case that actually RAN and failed blocks absolutely, inconclusive or not.
+  if (advFail.length) reasons.push(`${advFail.length} adversarial case(s) failed — blocks absolutely`);
+  // The golden rate is only meaningful when enough cases executed.
+  if (!inconclusive && goldRan && rate < 0.95) {
+    reasons.push(`golden grounding ${(rate * 100).toFixed(1)}% < 95%`);
+  }
+
+  return {
+    blocked: reasons.length > 0, reasons, inconclusive, rate,
+    goldPass, goldRan, advFail: advFail.length, advRan: adv.length, skipped, ran, total: rows.length,
+  };
 }
 
 const offline = offlineChecks();
@@ -246,6 +263,15 @@ if (v.blocked) {
   console.log('\nNever loosen an assertion or the verifier to get green. Decide whether the');
   console.log('AGENT is wrong or the ASSERTION is wrong — see .claude/skills/run-agent-evals.');
   process.exit(1);
+}
+if (v.inconclusive) {
+  console.log('VERDICT: INCONCLUSIVE — not a failure, and not a pass either');
+  console.log(`  Only ${v.ran}/${v.total} cases executed; ${v.skipped} skipped because no provider`);
+  console.log('  was reachable. A provider outage must never become a CI outage, so this');
+  console.log('  does not block — but nothing was meaningfully measured, so it cannot ship');
+  console.log('  on this evidence. Configure provider keys and re-run before tagging.');
+  console.log('');
+  process.exit(0);
 }
 console.log('VERDICT: SHIP');
 if (v.skipped) {

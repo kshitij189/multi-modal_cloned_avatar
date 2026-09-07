@@ -55,15 +55,34 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+
+      # Without provider keys every case skips, which measures nothing. Detect that up
+      # front and skip the step cleanly rather than running a suite that cannot conclude.
+      # The `secrets` context is not available in a job-level `if`, so this is a step.
+      - name: Are provider secrets configured?
+        id: keys
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          if [ -n "$GEMINI_API_KEY" ] || [ -n "$GROQ_API_KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Live evals skipped::No GEMINI_API_KEY or GROQ_API_KEY repository secret is set, so every live case would skip. The offline mechanical evals already ran in the 'check' job and are the blocking gate. Add the secrets (both free, no card) to enable live evals."
+          fi
+
       - name: Full eval suite
+        if: steps.keys.outputs.present == 'true'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         # A provider 429 marks cases skipped rather than failing — a free-tier rate limit
         # must never become a CI outage. Adversarial failures still block absolutely.
         run: npm run evals
+
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.keys.outputs.present == 'true'
         with:
           name: eval-report
           path: evals/report.json
