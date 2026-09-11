@@ -8,15 +8,30 @@ and the PRD wins for *what to build*.
 
 ## Project
 
-A personalised AI agent that greets a named recruiter, walks them through Kshitij
-Tripathi's work, and answers grounded questions about it. Static page on Cloudflare
-Pages, one Cloudflare Worker for `/api/*`, Workers KV for tokens, D1 for events. The
-expensive artifacts (video, cloned voice) are pre-rendered offline and committed as
-static files. Total recurring cost: **₹0**.
+A personalised AI agent that **speaks** about Kshitij Tripathi's work. It appears as an
+overlay on his portfolio, greets a named recruiter, talks them through his background for
+about ninety seconds, then answers spoken-back questions — all generated live. Static page
+on Cloudflare Pages, one Cloudflare Worker for `/api/*`, Workers KV for tokens, D1 for
+events. Total recurring cost: **₹0**.
 
-**Current phase: v0.** See §5 of the PRD for scope. v0 has **no microphone, no
-speech-to-text and no voice cloning** — those are v1. Do not build them early, even if
-they look easy. The v0 cut exists because they are the three highest-risk components.
+**Nothing the avatar says is scripted.** Every line — the opening walkthrough included —
+is generated fresh from the content snapshot on each visit and spoken by a text-to-speech
+model. There are no recorded clips and no pre-rendered audio bank. This is a deliberate
+product decision (the owner asked for it explicitly) and it drives three constraints:
+
+- **Speech is on the request path**, so its cost is the binding limit on the whole design.
+  See `TTS` in `worker/constants.js` for the verified neuron economics and why MeloTTS is
+  the voice rather than the better-sounding Deepgram Aura.
+- **The avatar's mouth is driven by the audio waveform**, not by a pre-computed lipsync
+  track. Photoreal lipsync against live-generated speech needs a GPU at request time,
+  which costs money. Amplitude analysis costs nothing and can never drift out of sync.
+- **Spoken content is verified exactly as strictly as written content.** A recruiter who
+  only *hears* a claim cannot re-read it or check its citation, so the bar is if anything
+  higher. The walkthrough goes through the same verifier as every answer.
+
+**Still deferred: the microphone and speech-to-text.** Output is spoken, input is typed.
+Do not build mic input early — it is the highest-risk remaining component and nothing
+depends on it.
 
 ---
 
@@ -34,24 +49,25 @@ they look easy. The v0 cut exists because they are the three highest-risk compon
 │
 ├── src/                          # frontend (vanilla JS + Web Components)
 │   ├── main.js                   # entry; boots the state machine
+│   ├── embed.js                  # the portfolio overlay. Shadow DOM + iframe.
 │   ├── components/               # one file per custom element
-│   │   ├── avatar-stage.js       # <video> + loop switching
-│   │   ├── transcript-panel.js   # THE PRIMARY UI. Treat it as such.
+│   │   ├── avatar-stage.js       # SVG face; mouth driven by the audio waveform
+│   │   ├── transcript-panel.js   # captions + Q&A. Complete without audio.
 │   │   ├── ask-box.js            # text input + suggested-question chips
 │   │   └── disclosure-badge.js   # never remove, never make dismissible
 │   ├── lib/
 │   │   ├── session.js            # /api/session fetch + feature flags
 │   │   ├── stream.js             # SSE consumption
-│   │   └── a11y.js               # focus management, live regions
+│   │   └── speech.js             # audio queue, AnalyserNode, browser-voice fallback
 │   └── styles/tailwind.css
 │
 ├── worker/                       # Cloudflare Worker — the only server code
 │   ├── index.js                  # router
-│   ├── routes/                   # session.js, ask.js, event.js, health.js
-│   ├── providers/                # gemini.js, groq.js, workers-ai.js, chain.js
+│   ├── routes/                   # session, ask, walkthrough, speak, event, health
+│   ├── providers/                # gemini, groq, workers-ai, chain, tts
 │   ├── grounding/                # prompt.js, verifier.js, banned.js
 │   ├── store/                    # kv.js, d1.js
-│   └── constants.js              # ALL model IDs live here. Nowhere else.
+│   └── constants.js              # ALL model IDs and TTS economics. Nowhere else.
 │
 ├── content/
 │   ├── content.snapshot.json     # THE AGENT'S BRAIN. Only the rebuild skill writes it.
@@ -319,11 +335,17 @@ something costs you more than 20 minutes.
   with muted-autoplay-then-unmute. Entry is one explicit click. This is a product
   decision, not just a technical constraint — see PRD §3.3.
 - **iOS Safari only unlocks audio inside the user-gesture handler itself.** If you
-  `await` anything before calling `.play()`, the gesture context is gone and playback
-  silently fails. Call `.play()` synchronously in the handler; do async work after.
-- **`<video preload="auto">` will fetch megabytes on page load.** Use `preload="none"`
-  plus a `poster`. A recruiter who never taps Start must cost zero media bytes.
-- **iOS requires `playsinline`** or the video takes over the whole screen in fullscreen.
+  `await` anything before creating and resuming the `AudioContext`, the gesture is gone
+  and audio silently never plays. `SpeechQueue.unlock()` is called synchronously in the
+  click handler for exactly this reason; everything async happens after it.
+- **Prefetch the next speech chunk while the current one plays.** Synthesising the whole
+  monologue before saying a word is ten seconds of silence on arrival, which is the entire
+  attention budget. `speech.js` keeps one chunk in flight ahead.
+- **Wire caption callbacks BEFORE playback starts.** A chunk spoken with nothing on screen
+  is the moment a muted recruiter decides the page is broken.
+- **Never let a TTS failure become silence.** Every path falls back to the browser's own
+  `speechSynthesis`, and the client is told when that happened so it can say so rather
+  than passing a device voice off as the real thing.
 - **Firefox has no Web Speech API by default** (behind `dom.webspeech.recognition.enable`).
   Feature-detect and never render the mic button rather than showing one that fails.
 - **Chrome and Edge send Web Speech audio to Google's servers.** Safari can run on-device.

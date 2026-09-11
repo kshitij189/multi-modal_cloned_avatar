@@ -53,11 +53,34 @@ test('/api/session rejects a malformed token without spending a KV read', async 
   assert.equal((await res.json()).personalised, false);
 });
 
-test('v0 advertises mic and tts as OFF — they are v1', async () => {
+test('speech is advertised as available; the microphone is not', async () => {
+  // Output is spoken, input is typed. The mic is still deferred — it is the highest-risk
+  // remaining component and nothing depends on it.
   const res = await worker.fetch(req('/api/session'), emptyEnv, ctx);
   const j = await res.json();
   assert.equal(j.features.mic, false);
+  assert.equal(j.features.tts, true, 'speech must be on — it is the point of the product');
+  assert.equal(j.features.avatar, true);
+});
+
+test('speech is switched OFF server-side once the neuron budget is spent', async () => {
+  // Better to tell the client up front than to let it discover mid-sentence. The client
+  // then uses the browser voice rather than falling silent.
+  const spentEnv = {
+    DB: {
+      prepare: () => ({
+        bind: () => ({
+          all: async () => ({ results: [{ provider: 'tts', calls: 999999 }] }),
+          first: async () => null,
+          run: async () => ({}),
+        }),
+      }),
+    },
+  };
+  const res = await worker.fetch(req('/api/session'), spentEnv, ctx);
+  const j = await res.json();
   assert.equal(j.features.tts, false);
+  assert.equal(j.features.browser_tts_fallback, true);
 });
 
 test('/api/ask serves an FAQ hit with no provider and no keys', async () => {
@@ -108,11 +131,16 @@ test('/api/event always returns 204, even for junk', async () => {
 });
 
 test('CORS is an explicit allowlist, never *', async () => {
-  const allowed = await worker.fetch(req('/api/health', { headers: { Origin: 'https://kshitij.dev' } }), emptyEnv, ctx);
-  assert.equal(allowed.headers.get('access-control-allow-origin'), 'https://kshitij.dev');
+  // The live portfolio origin is load-bearing: the overlay is embedded there, so without
+  // it the recruiter gets no audio and no answers.
+  const portfolio = 'https://kshitij189.github.io';
+  const allowed = await worker.fetch(req('/api/health', { headers: { Origin: portfolio } }), emptyEnv, ctx);
+  assert.equal(allowed.headers.get('access-control-allow-origin'), portfolio);
 
-  const denied = await worker.fetch(req('/api/health', { headers: { Origin: 'https://evil.example' } }), emptyEnv, ctx);
-  assert.equal(denied.headers.get('access-control-allow-origin'), null);
+  for (const bad of ['https://evil.example', 'https://kshitij189.github.io.evil.com', 'null']) {
+    const denied = await worker.fetch(req('/api/health', { headers: { Origin: bad } }), emptyEnv, ctx);
+    assert.equal(denied.headers.get('access-control-allow-origin'), null, `must not allow ${bad}`);
+  }
 });
 
 test('unknown routes 404 rather than throwing', async () => {

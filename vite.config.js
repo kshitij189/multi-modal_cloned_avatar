@@ -11,6 +11,13 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: 'index.html',
+        // The portfolio embeds this by URL, so it must keep a stable, unhashed filename:
+        // the script tag on the portfolio cannot be updated on every agent deploy without
+        // breaking the two-repo independence rule.
+        embed: 'src/embed.js',
+      },
+      output: {
+        entryFileNames: (chunk) => (chunk.name === 'embed' ? 'embed.js' : 'assets/[name]-[hash].js'),
       },
     },
   },

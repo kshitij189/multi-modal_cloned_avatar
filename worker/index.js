@@ -11,6 +11,8 @@ import { handleSession } from './routes/session.js';
 import { handleAsk } from './routes/ask.js';
 import { handleEvent } from './routes/event.js';
 import { handleHealth } from './routes/health.js';
+import { handleWalkthrough } from './routes/walkthrough.js';
+import { handleSpeak } from './routes/speak.js';
 import { ALLOWED_ORIGINS } from './constants.js';
 
 function corsHeaders(request) {
@@ -29,6 +31,8 @@ function corsHeaders(request) {
 const ROUTES = {
   'GET /api/session': handleSession,
   'POST /api/ask': handleAsk,
+  'POST /api/walkthrough': handleWalkthrough,
+  'POST /api/speak': handleSpeak,
   'POST /api/event': handleEvent,
   'GET /api/health': handleHealth,
 };

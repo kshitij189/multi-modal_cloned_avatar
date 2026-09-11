@@ -27,9 +27,14 @@ const PROMPT_LEAK_RE = /(ABSOLUTE RULES|--- CONTENT|<<<QUESTION|system prompt|my
 
 /**
  * @param {string} text  The complete generated answer.
+ * @param {{maxWords?: number}} [opts]  The opening walkthrough is a longer monologue than
+ *   a Q&A answer, so it carries its own cap. Everything else about verification is
+ *   identical — spoken content is verified exactly as strictly as written content,
+ *   because a recruiter cannot fact-check something they only hear.
  * @returns {{ok: boolean, reason?: string, answer: string, cited: string[]}}
  */
-export function verifyAnswer(text) {
+export function verifyAnswer(text, opts = {}) {
+  const maxWords = opts.maxWords ?? LIMITS.maxAnswerWords;
   const raw = (text ?? '').trim();
 
   if (!raw) {
@@ -85,7 +90,7 @@ export function verifyAnswer(text) {
   }
 
   const words = answer.split(/\s+/).length;
-  if (words > LIMITS.maxAnswerWords * 1.5) {
+  if (words > maxWords * 1.5) {
     // Hard cap. A long answer is a symptom — usually the model wandering off the corpus.
     return { ok: false, reason: `too_long:${words}`, answer: REFUSAL, cited: [] };
   }

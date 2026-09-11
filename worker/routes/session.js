@@ -55,6 +55,9 @@ export async function handleSession(request, env, ctx) {
   const totalCalls = Object.values(quotas).reduce((a, b) => a + b, 0);
   const budget = Object.values(LIMITS.dailyBudget).reduce((a, b) => a + b, 0);
   const llmAvailable = kill.mode !== 'static_only' && totalCalls < budget * LIMITS.faqOnlyAt;
+  // Speech is priced in neurons, not requests, so it has its own budget and its own
+  // availability flag. Running out of speech must not disable the rest of the page.
+  const ttsAvailable = kill.mode !== 'static_only' && (quotas.tts ?? 0) < LIMITS.ttsNeuronBudget;
 
   const personalised = Boolean(payload);
 
@@ -73,10 +76,13 @@ export async function handleSession(request, env, ctx) {
     snapshot_age_days: snapshotAgeDays(),
     person: { name: PERSON.name, email: PERSON.email, links: PERSON.links },
     features: {
-      // v0: no microphone, no cloned-voice TTS. Both are v1 (PRD §5).
+      // Microphone is still deferred — typing is the input, speech is the output.
       mic: false,
-      tts: false,
-      video: true,
+      // Server-side speech is on unless the neuron budget is gone, in which case the
+      // client uses the browser's own voice rather than falling silent.
+      tts: ttsAvailable,
+      browser_tts_fallback: !ttsAvailable,
+      avatar: true,
       llm: llmAvailable,
     },
     degraded: !llmAvailable,

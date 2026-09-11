@@ -48,8 +48,24 @@
 | **v1 — mic, voice, embed** | 14 | 0 | 24–32 h | 0 h | ⬜ Not started |
 | **v2 — conditional** | 6 | 0 | Open | 0 h | ⏭️ Not scheduled |
 
-**Overall: 20 / 47 tasks. v0 code complete except media (T-1.19) and the three tasks
-that need a Cloudflare account (T-1.02, T-1.03, T-1.22).**
+**Overall: 20 / 47 tasks. v0 code complete except the three tasks that need a Cloudflare
+account (T-1.02, T-1.03, T-1.22).**
+
+> ### 🔊 Scope change, 2026-09-11 — speech moved from v1 into the core
+>
+> The owner clarified that **an avatar that speaks about the portfolio is the project**,
+> not a later enhancement, and that **no line may be scripted** — everything impromptu,
+> generated from the portfolio. Both are now built. See the Decisions Log.
+>
+> Consequences for the task tables below, which still describe the old video-based plan:
+> - **T-1.19 (record video/audio) is CANCELLED.** There is nothing to pre-render.
+>   `/render-voice-and-video` no longer describes this system.
+> - **T-1.14** was a `<video>` stage; it is now an SVG avatar driven by the audio
+>   waveform. Media payload dropped from a ~1.6MB budget to ~5KB.
+> - **T-2.09 / T-2.10 (portfolio embed)** are done early — the overlay is the delivery
+>   mechanism the owner asked for, so it could not wait for a later phase.
+> - **Still deferred:** the microphone and speech-to-text (T-2.01–T-2.03). Output is
+>   spoken, input is typed.
 
 **Two tasks are `🔄`, not `✅`, because their acceptance criteria are only partly met —
 recorded honestly rather than rounded up:**
@@ -131,7 +147,7 @@ speech-to-text, no voice cloning.**
 
 | ID | Task | Deps | Est | Acceptance | Status |
 |---|---|---|---|---|---|
-| T-1.19 | Record + edit: idle loop (~8s seamless) and intro clip (~25s), encode for web, write `.vtt` captions by hand | — | 4h | Idle loop has no visible seam; intro ≤1.2 MB at 720p; captions hand-corrected and exactly match the audio; **acceptance is "watchable", not "good"** (risk R12) | ⬜ |
+| T-1.19 | Record + edit: idle loop (~8s seamless) and intro clip (~25s), encode for web, write `.vtt` captions by hand | — | 4h | Idle loop has no visible seam; intro ≤1.2 MB at 720p; captions hand-corrected and exactly match the audio; **acceptance is "watchable", not "good"** (risk R12) | ❌ cancelled |
 
 ### v0.E — Evals, ship (3–5 h)
 
@@ -155,8 +171,8 @@ speech-to-text, no voice cloning.**
 | T-2.06 | Greeting playback over the idle loop before the recorded clip | T-2.05, T-1.14 | 1.5h | No jarring cut into the recorded clip; ~2s lipsync mismatch is not noticeable at normal viewing | ⬜ |
 | T-2.07 | `speechSynthesis` "read aloud (synthetic voice)" toggle for novel answers | T-1.15 | 1.5h | **Explicitly labelled as not his voice**; off by default; stops cleanly on a new question | ⬜ |
 | T-2.08 | Live content contract: fetch, validate, chunk, commit snapshot | T-1.04 | 3h | Schema-version mismatch procedure works for all four cases in PRD §9.1; fetch failure still produces a green build | ⬜ |
-| T-2.09 | `embed.js` — Shadow DOM launcher + iframe | T-1.22 | 3h | ≤4 KB unclicked; zero CSS leakage in either direction; no layout shift on the portfolio | ⬜ |
-| T-2.10 | `postMessage` contract, both directions, origin-validated | T-2.09 | 2h | **Never `targetOrigin: "*"`**; both ends validate `event.origin`; unknown message types ignored, not errored | ⬜ |
+| T-2.09 | `embed.js` — Shadow DOM launcher + iframe | T-1.22 | 3h | ≤4 KB unclicked; zero CSS leakage in either direction; no layout shift on the portfolio | ✅ |
+| T-2.10 | `postMessage` contract, both directions, origin-validated | T-2.09 | 2h | **Never `targetOrigin: "*"`**; both ends validate `event.origin`; unknown message types ignored, not errored | ✅ |
 | T-2.11 | Turnstile on the first `/api/ask` of a session | T-1.10 | 1.5h | Never challenges before the recruiter has seen content; failure falls through to the static answer set | ⬜ |
 | T-2.12 | Grounding verifier v2 — per-sentence claim-to-node mapping | T-1.09 | 3h | Detects a plausible-but-uncited claim that the v1 regex misses; ≤3ms CPU | ⬜ |
 | T-2.13 | Three per-project video clips, selected by the token's `lead_project` | T-1.19 | 3h | Each ≤1.2 MB with hand-written captions; correct clip selected from the token | ⬜ |
@@ -201,6 +217,11 @@ Append-only. Never delete a row — a reversed decision gets a new row referenci
 | 2026-09-06 | **Public repo** | Private repo | The repo is a large share of the artifact's value, and public repos get unmetered GitHub Actions. Recruiters seeing the commit history including the ugly parts is a feature. |
 | 2026-09-07 | **The FAQ path gets its own guards, because the verifier cannot protect it** | Routing every risky question to the model instead; dropping the FAQ fast-path entirely | The adversarial set caught two real holes (a-007, a-022) whose root cause was structural: FAQ answers are served **verbatim with no model call**, so the post-generation verifier never sees them. The FAQ was the one path in the system with no guardrail. Two guards added — a question naming an out-of-allowlist technology may only be answered by an entry that itself covers that technology, and matching now scores recall as well as precision. Dropping the FAQ was rejected: it is the cheapest, safest and most honest path in the system, and `faq.frontend` answering "Do you know React?" candidly is more valuable than a model round-trip. |
 | 2026-09-07 | **A first fix was reverted for being too blunt** | Blocking the FAQ outright for any question naming an out-of-allowlist technology | That version made the tests fail on "Do you know React?" — the single most likely disqualifying question, which `faq.frontend` exists specifically to answer candidly. **The failing test was correct and the fix was wrong.** Narrowed the guard rather than weakening the test. Worth recording as the pattern: when a guard breaks a legitimate case, narrow the guard, never relax the assertion. |
+| 2026-09-11 | **Speech is core, not a v1 add-on — phases reordered** | Keeping the v0 text-only cut; bolting speech on later | The owner was explicit: the point of the project is an avatar that *speaks* about the portfolio. The original phase order put mic, voice and video together in v1 because all three were high-risk, but that lumped speech OUT (which is now essential and turned out to be cheap) with speech IN (which is genuinely risky and still deferred). Splitting them was the correction: output ships now, the microphone stays deferred. |
+| 2026-09-11 | **Nothing is scripted; every line is generated at runtime** | Recorded video of himself; a pre-rendered audio bank; cloned voice for scripted lines | An explicit owner requirement. It removes the whole offline render pipeline — no recording session, no Colab, no committed media — and in exchange makes TTS a request-path cost. Net simplification: the media payload budget drops from ~1.6MB to ~5KB, and the corpus can change without re-recording anything. |
+| 2026-09-11 | **MeloTTS is the voice, not Deepgram Aura** | Aura-1 (better sounding); Aura for the greeting with MeloTTS for the body; Kokoro in-browser | Verified pricing: MeloTTS is 18.63 neurons/audio-minute, Aura-1 is 1,363/1k chars. On the free 10,000 neurons/day that is ~150 full visits versus ~3. Aura is unusable as the primary at any real visit volume. Mixing them was rejected because switching voice identity partway through a conversation is jarring — worse than a consistently decent voice. Kokoro in-browser is genuinely good and unlimited but needs an ~85MB download, which fails the mobile payload budget outright. |
+| 2026-09-11 | **The avatar's mouth is driven by audio amplitude, not predicted lipsync** | SadTalker/LivePortrait generated lipsync; photoreal video; a 3D avatar with visemes | Impromptu speech has no recording to lipsync in advance, and generating photoreal lipsync at request time needs a paid GPU. Reading the waveform with an AnalyserNode costs nothing, runs at 60fps on a phone, and **cannot** drift out of sync because it measures the audio rather than predicting it. A stylized avatar is also more honest than a slightly-wrong photoreal face, which reads as a bad deepfake. |
+| 2026-09-11 | **`/api/speak` re-verifies text the client sends back** | Trusting the client to return only text the server generated | The client posts text back for synthesis. Without a check, that is a "make the avatar say anything in Kshitij's voice" endpoint reachable by anyone. It uses `earlyReject` rather than the full verifier because the payload is a sentence fragment of an already-verified monologue and has no `CITE` line of its own — requiring one would reject every legitimate chunk while catching nothing. |
 | 2026-09-07 | **An eval run with most cases skipped is INCONCLUSIVE, not BLOCKED** | Leaving it as BLOCKED; treating skipped cases as passes | `run.js` computed the golden pass rate over only the cases that executed, so a run with no provider keys measured 8 of 52 cases and reported a spurious BLOCKED — contradicting the stated rule (PRD §12.4) that a provider outage must never become a CI outage. Treating skips as passes was rejected outright: it would let a release ship on evidence that was never gathered. INCONCLUSIVE does not block and also may not claim SHIP. |
 
 ---

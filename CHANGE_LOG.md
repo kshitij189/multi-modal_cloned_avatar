@@ -59,6 +59,26 @@ Bad: `Refactored ask-box.js to feature-detect.`
 ## [Unreleased]
 
 ### Added
+- **The agent speaks.** On arrival it generates a ~90-second introduction and says it
+  aloud — who he is, what he built at Zhecker, each of the five projects and what was
+  genuinely hard about them, and the roles he's exploring. **Nothing is scripted:** the
+  monologue is generated fresh from the content snapshot on every visit and synthesised by
+  a text-to-speech model. Answers to follow-up questions are spoken too.
+- **An animated avatar** whose mouth is driven by the live audio waveform, with irregular
+  blinking and speaking/thinking/idle states. Stays in sync with impromptu speech because
+  it measures the sound rather than predicting it. ~5KB of SVG, no model download.
+- **A portfolio overlay** (`embed.js`, 1.8KB gzipped): one script tag on the portfolio
+  renders a floating launcher, and tapping it opens the agent full-screen over the page.
+  Isolated from the host site's CSS by Shadow DOM and from its JavaScript by an iframe.
+  Costs the portfolio nothing until someone taps it.
+- A **"Skip to questions"** control during the monologue, for recruiters who'd rather ask
+  than listen.
+- Speech falls back to the browser's own voice when the daily synthesis budget is spent,
+  and **says so on screen** rather than passing a device voice off as the real thing.
+- `POST /api/walkthrough` (generates the spoken introduction) and `POST /api/speak`
+  (synthesises one chunk of verified text).
+
+### Added — earlier
 - Pre-start screen showing the recruiter's name, company and role in the first paint,
   with two equally-sized entry points — **Start** and **Just show me the text**. (T-1.13)
 - Transcript panel as the primary UI: complete without audio or video, `aria-live` so
@@ -86,13 +106,21 @@ Bad: `Refactored ask-box.js to feature-detect.`
 - `scripts/mint-token.js` — mints a personalised recruiter link and prints the URL.
 
 ### Changed
-- Nothing yet.
+- **The agent's knowledge now comes from the live portfolio** rather than a hand-typed
+  copy of the resume. Adds two projects it previously knew nothing about — Payout System
+  and CLI Login System — plus the services section, live project URLs and every profile
+  link. Content contract 1.0.0 → 1.1.0.
+- The opening call to action is now **"Let him talk · ~90 sec"**, with "Just show me the
+  text" beside it at equal weight for anyone who can't turn audio on.
 
 ### Deprecated
-- Nothing yet.
+- The recorded-video and offline voice-cloning pipeline. Every line is now generated live,
+  so there is nothing to pre-render. `/render-voice-and-video` no longer describes how
+  this system works.
 
 ### Removed
-- Nothing yet.
+- The `<video>` stage, its poster and its media payload budget. Replaced by the SVG
+  avatar, which is ~5KB against the ~1.6MB the video path had budgeted.
 
 ### Fixed
 - **The agent no longer answers a presupposition attack as though the premise were true.**

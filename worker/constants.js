@@ -58,6 +58,41 @@ export const STT = {
   maxFileBytes: 25 * 1024 * 1024,
 };
 
+/**
+ * Text-to-speech chain. Everything the avatar says is generated fresh, so TTS runs on
+ * the request path — which makes the neuron economics the whole design constraint.
+ *
+ * Verified 2026-09-11 against developers.cloudflare.com/workers-ai/platform/pricing/:
+ * the Workers Free plan allows 10,000 neurons/day, and
+ *
+ *   @cf/myshell-ai/melotts     18.63 neurons per audio MINUTE
+ *   @cf/deepgram/aura-1     1,363.64 neurons per 1k CHARACTERS
+ *   @cf/deepgram/aura-2-en  2,727.27 neurons per 1k CHARACTERS
+ *
+ * Aura sounds more human — Cloudflare describes it as applying "natural pacing,
+ * expressiveness and fillers". It is also roughly 70x more expensive per minute of
+ * speech: a single 90-second walkthrough costs ~3,700 neurons on Aura-1 versus ~28 on
+ * MeloTTS. At 10,000 neurons/day that is ~3 visits versus ~150.
+ *
+ * So MeloTTS is the voice. Aura stays configured but unused by default — switching voice
+ * identity partway through a conversation is jarring, so mixing them is worse than
+ * picking one. Flip TTS_PRIMARY only after listening to both.
+ */
+export const TTS = {
+  primary: 'melotts',
+  voices: {
+    melotts: { model: '@cf/myshell-ai/melotts', neuronsPerAudioMinute: 18.63, lang: 'en' },
+    'aura-1': { model: '@cf/deepgram/aura-1', neuronsPer1kChars: 1363.64, speaker: 'orion' },
+  },
+  // Browser speechSynthesis is the floor — free, instant, always available, and the only
+  // thing that still works when the neuron budget is gone.
+  browserFallback: true,
+  // Speech runs at roughly 14 characters per second. Used to price a request in neurons
+  // BEFORE spending them, since MeloTTS bills per audio minute rather than per character.
+  charsPerSecond: 14,
+  maxCharsPerCall: 700,
+};
+
 /** Circuit breaker: skip a provider that is failing rather than probing it every request. */
 export const BREAKER = {
   failureThreshold: 3,
@@ -71,8 +106,14 @@ export const LIMITS = {
   perSessionCalls: 15,
   minMsBetweenCalls: 1500,
   maxAnswerWords: 120,
+  // The opening walkthrough is a monologue, not an answer — ~90 seconds of speech at a
+  // natural pace. Still verified against the corpus like everything else.
+  maxWalkthroughWords: 260,
   maxHistoryTurns: 3,
   maxQuestionChars: 600,
+  // Neurons reserved for speech out of the 10,000/day Workers AI allowance. The rest is
+  // headroom for the third-tier LLM fallback, which should normally sit at zero.
+  ttsNeuronBudget: 8000,
   // Daily budget per provider before the chain demotes it. Conservative against the
   // unverified Gemini RPD figure.
   dailyBudget: { gemini: 1000, groq: 5000, 'workers-ai': 500 },
@@ -85,8 +126,9 @@ export const TOKEN_TTL_SECONDS = 90 * 24 * 60 * 60;
 
 /** Origins allowed to call /api/*. Never "*". */
 export const ALLOWED_ORIGINS = [
-  'https://kshitij.dev',
-  'https://agent.kshitij.dev',
+  // The live portfolio. The overlay is embedded here, so this origin is load-bearing —
+  // without it the embed gets no audio and no answers.
+  'https://kshitij189.github.io',
   'https://kshitij-agent.pages.dev',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
