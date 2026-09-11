@@ -85,6 +85,23 @@ function renderCorpus(doc) {
   }
   L.push('');
 
+  if (doc.about) {
+    L.push('## About');
+    L.push(`### [${doc.about.id}]`);
+    L.push(doc.about.tagline);
+    L.push('');
+    L.push(doc.about.bio);
+    if (doc.about.philosophy) { L.push(''); L.push(`How he thinks about the work: ${doc.about.philosophy}`); }
+    L.push('');
+  }
+
+  if (doc.opportunities) {
+    L.push('## What he is looking for');
+    L.push(`### [${doc.opportunities.id}] ${doc.opportunities.status}`);
+    L.push(doc.opportunities.text);
+    L.push('');
+  }
+
   L.push('## Education');
   for (const e of doc.education) {
     L.push(`### [${e.id}] ${e.degree}, ${e.institution}`);
@@ -98,6 +115,16 @@ function renderCorpus(doc) {
     L.push(`${x.start} to ${x.end}${x.mode ? `, ${x.mode}` : ''}. Tech: ${(x.tech ?? []).join(', ')}.`);
     for (const b of x.bullets) L.push(`- [${b.id}] ${b.text}`);
     L.push('');
+  }
+
+  if (Array.isArray(doc.services) && doc.services.length) {
+    L.push('## What he does');
+    for (const s of doc.services) {
+      L.push(`### [${s.id}] ${s.name}`);
+      L.push(s.text);
+      if (s.skills?.length) L.push(`Skills: ${s.skills.join(', ')}.`);
+      L.push('');
+    }
   }
 
   L.push('## Projects');
