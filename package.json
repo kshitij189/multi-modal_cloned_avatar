@@ -21,13 +21,12 @@
     "deploy": "npm run build && wrangler deploy && wrangler pages deploy dist --project-name=kshitij-agent",
     "deploy:worker": "wrangler deploy"
   },
-  "dependencies": {},
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.11",
     "concurrently": "^9.1.2",
     "eslint": "^9.17.0",
     "tailwindcss": "^4.1.11",
     "vite": "^6.0.7",
-    "wrangler": "^3.99.0"
+    "wrangler": "^4.131.0"
   }
 }

@@ -16,7 +16,7 @@ BUILD_SHA = "dev"
 # 100,000 reads/day, 1,000 WRITES/day. Nothing on a request path writes here.
 [[kv_namespaces]]
 binding = "TOKENS"
-id = "REPLACE_ME"                 # npx wrangler kv namespace create TOKENS
+id = "693434b843b04101add05bc0bd432216"  # npx wrangler kv namespace create TOKENS
 preview_id = "REPLACE_ME_PREVIEW" # npx wrangler kv namespace create TOKENS --preview
 
 # Event log, quota counters, rate limits.
@@ -24,7 +24,7 @@ preview_id = "REPLACE_ME_PREVIEW" # npx wrangler kv namespace create TOKENS --pr
 [[d1_databases]]
 binding = "DB"
 database_name = "kshitij-agent-db"
-database_id = "REPLACE_ME"        # npx wrangler d1 create kshitij-agent-db
+database_id = "2a993582-5316-41ef-b7cc-f78f22657e79"  # npx wrangler d1 create kshitij-agent-db
 
 # Third-tier LLM fallback. No API key needed — 10,000 neurons/day free.
 [ai]
