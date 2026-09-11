@@ -5,7 +5,7 @@
  * page knows comes from /api/session — the client holds no facts of its own.
  */
 
-const API = '/api';
+import { API } from './api-base.js';
 
 export function tokenFromPath() {
   const m = /^\/hi\/([A-Za-z0-9_-]{6,32})\/?$/.exec(window.location.pathname);

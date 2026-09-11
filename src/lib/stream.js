@@ -7,6 +7,8 @@
  * reconstructs an answer from fragments.
  */
 
+import { API } from './api-base.js';
+
 /**
  * @param {{token: string|null, sid: string, text: string, history: Array}} req
  * @param {{onAnswer: Function, onCitation: Function, onDone: Function, onError: Function}} handlers
@@ -14,7 +16,7 @@
 export async function ask(req, handlers, signal) {
   let res;
   try {
-    res = await fetch('/api/ask', {
+    res = await fetch(`${API}/ask`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(req),

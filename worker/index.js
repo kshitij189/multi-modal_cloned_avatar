@@ -18,7 +18,12 @@ import { ALLOWED_ORIGINS } from './constants.js';
 function corsHeaders(request) {
   const origin = request.headers.get('Origin');
   // Explicit allowlist, never "*". The embed path (v1) depends on this being correct.
-  if (!origin || !ALLOWED_ORIGINS.includes(origin)) return {};
+  // Also allow Cloudflare Pages deploy preview URLs (<hash>.kshitij-agent.pages.dev).
+  const allowed = origin && (
+    ALLOWED_ORIGINS.includes(origin) ||
+    /^https:\/\/[a-f0-9]+\.kshitij-agent\.pages\.dev$/.test(origin)
+  );
+  if (!allowed) return {};
   return {
     'access-control-allow-origin': origin,
     'access-control-allow-methods': 'GET, POST, OPTIONS',

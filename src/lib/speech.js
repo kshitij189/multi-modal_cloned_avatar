@@ -15,6 +15,8 @@
  *     the avatar talking in about a second and keeps the gap between chunks inaudible.
  */
 
+import { API } from './api-base.js';
+
 /**
  * Splits text on sentence boundaries for chunked playback.
  *
@@ -110,7 +112,7 @@ export class SpeechQueue {
 
   async #fetchAudio(text, opts) {
     try {
-      const res = await fetch('/api/speak', {
+      const res = await fetch(`${API}/speak`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ text, token: opts.token, sid: opts.sid }),
@@ -160,7 +162,7 @@ export class SpeechQueue {
  */
 export async function fetchWalkthrough(token, sid) {
   try {
-    const res = await fetch('/api/walkthrough', {
+    const res = await fetch(`${API}/walkthrough`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ token, sid }),
